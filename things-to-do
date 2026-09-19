@@ -1,0 +1,13 @@
+Custom bitstream encoder/decoder. - **
+heap allocater -- wtf?
+# Write a Bare-Metal x86 Bootloader:Instead of writing a standard program, write code that runs the moment a PC starts up. You write a program exactly 512 bytes long that ends with the magic bytes 0xAA55.What you learn: The x86 real-mode execution environment, CPU registers, writing raw BIOS interrupts in embedded inline Assembly inside your C code.Resource: Look at the OSDev Wiki for setting up a minimal environment with QEMU.
+http server -- scratch **** 
+--- socket_programming, network protocols, string manipulations, file i/OSDev
+
+
+[1. Create Socket] ──> [2. Bind to Port] ──> [3. Listen] ──> [4. Accept Client] ──> [5. Read/Write Data] ──> [6. Close]
+                                                                  ▲                                      │
+                                                                  └──────────────────────────────────────┘
+                                                                        (Loop back for next client)
+
+

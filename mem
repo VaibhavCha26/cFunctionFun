@@ -1,0 +1,47 @@
+========================================================================================
+[ Neighborhood Layout (The 64-Bit Virtual Memory Address Sandbox) ]
+========================================================================================
+💸 [ HIGH VIRTUAL ADDRESSES ]
+   ├── THE STACK        (Grows DOWN ⬇️)  <- Managed via RSP Register (Fast, Auto, Max ~8MB)
+   │      ▼
+   │   [ Free, Unmapped Space ]
+   │      ▲
+   ├── THE HEAP         (Grows UP ⬆️)    <- Managed via mmap()/malloc() (Dynamic Data/Holes)
+   ├── BSS / DATA                       <- Global/Static Variables
+   └── CODE (TEXT)                      <- Your actual compiled execution binary
+📍 [ LOW VIRTUAL ADDRESSES ]
+========================================================================================
+
+
+========================================================================================
+[ The Hardware Execution & Routing Pipeline ]
+========================================================================================
+              [ CPU Core / Execution Pipeline ]
+               │                             │
+    (Standard Memory Access)        (Non-Temporal Intrinsic: _mm_stream_si32)
+               │                             │
+               ▼                             ▼
+    [ Hardware TLB Cache ]         [ Write-Combining (WC) Buffers ]
+    (Fast Address Lookup)          (Tiny 64-byte on-chip staging clipboards)
+         │           │                       │
+     (Hit: 1cy)  (Miss: 250cy)               │
+         │           │                       │
+         ▼           ▼                       ▼ (Direct Bypass On SFENCE)
+     [ L1 Cache ]  [ CR3 Reg ]               │
+     [ L2 Cache ]     │                      │
+     [ L3 Cache ]  Reads Page Table          │
+         │            │                      │
+         ▼            ▼                      ▼
+  ┌───────────────────────────────────────────────────────────────────────┐
+  │                        PHYSICAL RAM STICKS                            │
+  │  (Contains the active 16GB working packet of pages & Page Tables)     │
+  └───────────────────────────────────────────────────────────────────────┘
+         ▲                                   ▲
+         │                                   │
+         │ (Asynchronous Background Data)    │ (Writes back dirty blocks)
+         ▼                                   ▼
+  ┌───────────────────────────────────────────────────────────────────────┐
+  │               SYSTEM STORAGE SHELF (Hard Drive / SSD)                 │
+  │     (The 200GB absolute source of truth. Contains unmapped files)     │
+  └───────────────────────────────────────────────────────────────────────┘
+
