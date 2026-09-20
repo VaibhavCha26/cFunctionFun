@@ -2,6 +2,18 @@
 #include <stdio.h>
 #include "alloc_function.h"
 #include <sys/mman.h>
+#include <stdbool.h>
+
+typedef struct BlockHeader{
+  size_t size;
+  //void* forw_pointer;
+  // NOW this part is interesting -- you can use struct pointer somth and it work out the same way.
+  // something like this will work and would be easier to chenge the pointers address later on;
+  //
+  //
+  struct BlockHeader* next; // pointer to the next free space  
+  bool is_free;
+}BlockHeader;
 
 void midalloc(void){
   // sbrk() -- expand the boundary by that much bytes -- bad idea - slow;
@@ -19,7 +31,7 @@ void midalloc(void){
   // 3.*the allocator will know its boundaries i guess ? -- wtf ?
   //           
   //modern allocators use mmap for almost anything >128kb :P
-  //so this mmap should technically call the chunk that is random
+  //so this mmp should technically call the chunk that is random
   //call from anywhere it has space in the page.
   //
   //
@@ -67,7 +79,19 @@ void midalloc(void){
   //wtf is this (BlockHeader*)raw_pool
   //
   //
-  BlockHeader* firstHeader = (BlockHeader*)raw_pool
+  //
+  size_t pool_size;
+  //chunk tha came from the mmap is void* -> so i will convert to blockheader type DAMN :)
+  //and the i can't write to it because its void and i don't know its width is unknown
+  BlockHeader* firstHeader = (BlockHeader*)chunk;
+  // --- TASK: know the refrencing of the virutal addresses correctly.
+  //
+  //suppossing the base address is 0x7fff000
+  firstHeader->is_free = 1;// ->x7fff000
+  //
+  //pointer arithmetic is the next line -- yk this shit -- +N = N(size_t)
+  firstHeader->next = firstHeader + 1; // x7fff00x something relative to this -- i forgot lol T_T
+  firstHeader->size = pool_size - sizeof(BlockHeader);
 
   // now i guess i can change things like firstHeader --> something like size or is_free.
   //wtf is pointer typecasting?
@@ -76,6 +100,7 @@ void midalloc(void){
 
   // probably something like pointer == (thing) that will allocate the space to it - so basically call the algo for the pointers but what pointer
   // if i can't take in what type of data it is - how would i make function out of it?
+  // -->  void is the answer simply while giving call something like int* sdsd = function();   // Return the payload as a generic void*
   if(clear_mapping){
     munmap(chunk,len);
   }
