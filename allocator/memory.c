@@ -16,7 +16,7 @@ int main(int argc, char* argv[]){
   snprintf(admin_rights, // it will check PROT_WRITE permission ig ;<
            20*sizeof(size_t), 
            "why doesn't it do something4");  /// writes to buffer basically :>
-  ///
+  //
   printf("%s", *(&admin_rights)); // both *(& and &(*) work somehow 
   //
   //
