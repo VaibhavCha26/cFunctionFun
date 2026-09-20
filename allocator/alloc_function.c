@@ -4,6 +4,10 @@
 #include <sys/mman.h>
 #include <stdbool.h>
 
+//#define magic_number(sizeof(chunk_size)/sizeof(page_pool_size)) _Generic((x), \     
+//)(x)
+
+
 typedef struct BlockHeader{
   size_t size;
   //void* forw_pointer;
@@ -11,9 +15,13 @@ typedef struct BlockHeader{
   // something like this will work and would be easier to chenge the pointers address later on;
   //
   //
-  struct BlockHeader* next; // pointer to the next free space  
+  //struct BlockHeader* next; --> causing problems in calling it in for // pointer to the next free space  
   bool is_free;
+  void* next_pointer;
+  void* prev_pointer;
 }BlockHeader;
+
+#define SIZE_OF_HEADER 0
 
 void midalloc(void){
   // sbrk() -- expand the boundary by that much bytes -- bad idea - slow;
@@ -71,27 +79,98 @@ void midalloc(void){
   // this stuff of pointers and stuff gets removed when we use it for assignment by the user -- it will take the place of the pointers itself;
   // who the fuck cares -- at the end of the day its all handshakes between os and allocator and sometimes between cpu and allocator or os
   //
+  // the page of the os must only be of one neibhourhood only - i can't have like stack and heap segments on this one page 
+  // so i would have to get another page for the heap/stack --  x no its fine the os does that itself -- also at one time there would
+  // be multiple pages open at the same tme - stack/heap or compiled file or global variables. 0_0.
+  //
+  //why not just call a large page and break it into smaller sub pages for independent stuff? 
+  // mprotect() --> the above thing is done using this shit i guess?
   //
   //
+  //
+  //
+  char* data_allocate = "I hate my life";
   void* chunk = mmap(NULL,
-                     100*sizeof(size_t),
+                     chunk_size,
                      permissions,flags,type);
+
+  size_t data_of_user_combined; // why not int?
+
+  void* global_pointer = NULL;
   //wtf is this (BlockHeader*)raw_pool
   //
+  // 
+  // int or size_t which one? i am confused -- well automatically make it int so that it won't make an error even if the user typed wrong;
+  //
+  // Block splitting time yay T-T  --- x
+  // kind of trying to break the main chunk into pages for use in heap and stack and stuff
+  // but then i would have to find a way to check which page the data goes to ig 0_0.
+  //
+  //BlockHeaderk* new_page_chunk = (BlockHeader*)&chunk + no_of_mem_segments;
   //
   //
-  size_t pool_size;
+  //
+  // leaving the idea of splitting the mmap aside for now. -- can do some page header stuff and all but it would be pain ig :(
+  //
+  //
+  //
+  //
+  //
+  //
   //chunk tha came from the mmap is void* -> so i will convert to blockheader type DAMN :)
   //and the i can't write to it because its void and i don't know its width is unknown
-  BlockHeader* firstHeader = (BlockHeader*)chunk;
-  // --- TASK: know the refrencing of the virutal addresses correctly.
   //
+  //
+  // THE ASSIGNMENTS of pointers is in the registers of the cpu -- rax or rbx ????? WTF????
+  // thread stack? wtf\
+  //
+  //okay so basically there's rax and other registers in the bloody system - like rax rbp are low on size and less no.
+  //of them so cpu can use AVX-512 ( 32 of them ) giving 2kb of raw storage.
+  // --> these are designed for SIMD (single instruction,multiple data)
+  //
+  // SCRATCH-PAD memory - i don't know someone made what i thought :(
+  //
+  //now there's something called the register spilling and loop tiling -  If you are writing an algorithm (like matrix multiplication),
+  //the compiler will pull a 2KB sub-matrix directly into these vector registers - skipping the l1 cache and keep using data from this pipeline.
+  //
+  //now for the fact that there should be constant memory in that register for the cpu to use and not access the ram everytime for it.
+  //this thing is called  Immediate Value Encoding and Register Pinning. -- ig :P
+  //
+  //The compiler now maps your struct's offsets relative to the base address 0x7fff0000:
+  BlockHeader* firstHeader = (BlockHeader*)chunk;
+  //to manipulate this stuff i would have to use double pointers :) so bsically BlockHeader* is datatype and
+  //BlockHeader** is that type pointer pointing to that address; 
+  //to change the thing the pointer points to.
+  //
+  //
+  //
+  //wtf i have to change  this or the pointer arith will fail right?
+  // this will be changed so another pointer to it is taken so manipulation becomes ez :)
+  
+  //what should be the optimal type of pointer ?
+  BlockHeader* header_pointer = (BlockHeader*)firstHeader + 1; // currently pointing to second header not first ig :P
+  // -- > had to change this (void*)for some other pointer i guess?
+  void* start_of_actual_memory = (void*)((char*)header_pointer + SIZE_OF_HEADER);
+  BlockHeader** header_space = (BlockHeader**)header_pointer;
+  //
+  // --- TASK: know the refrencing of the virutal addresses correctly. -- that is storage wise check;
   //suppossing the base address is 0x7fff000
   firstHeader->is_free = 1;// ->x7fff000
   //
   //pointer arithmetic is the next line -- yk this shit -- +N = N(size_t)
-  firstHeader->next = firstHeader + 1; // x7fff00x something relative to this -- i forgot lol T_T
-  firstHeader->size = pool_size - sizeof(BlockHeader);
+  // x7fff00x something relative to this -- i forgot lol T_T
+  firstHeader->size = data_of_user_combined - sizeof(BlockHeader);
+
+
+  if(header_pointer->is_free == 1){
+    data_allocate = (char*)&start_of_actual_memory;
+    header_pointer->is_free = 0;
+    header_pointer-> size = sizeof((char*)data_allocate);
+  }
+  else{
+    // idk what the fuck i did somehow the error went away with this :)
+    header_pointer = start_of_actual_memory + header_pointer->size; 
+  }
 
   // now i guess i can change things like firstHeader --> something like size or is_free.
   //wtf is pointer typecasting?
