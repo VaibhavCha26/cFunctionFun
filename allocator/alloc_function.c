@@ -183,7 +183,12 @@ void midalloc(void){
     //header_space for layout and header_pointer for manipulating the actual payload space;
     header_pointer->is_free = 0;
     header_pointer -> size = strlen(data_allocate) * sizeof(int);
-    data_allocate = header_space; // is this fine ? i am scared it will break something.
+    data_allocate = header_space; // is this fine ? i am scared it will break something. 
+    //
+    //
+    header_space += (sizeof(char)*strlen(data_allocate) + header_pointer->size)/sizeof(BlockHeader);
+    header_pointer = (BlockHeader*)&header_space; // wtf am i doing? --> kind of fine
+    
   }
   else{
   }
