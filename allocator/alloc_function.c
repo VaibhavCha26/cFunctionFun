@@ -22,7 +22,17 @@ typedef struct BlockHeader{
   //void* prev_pointer; - |
 }BlockHeader;
 
-void midalloc(void){
+typedef struct pointer_data{
+  // struct Node*, you tell the computer: "This pointer points to a complete Node package
+  // that contains both a number (x) AND another pointer (next)."
+  struct pointer_data* prev;
+  struct pointer_data* next;
+}pointer_data;
+
+
+
+void midalloc(NULL,chunk_size,
+                     permissions,flags,type){
   // sbrk() -- expand the boundary by that much bytes -- bad idea - slow;
   //one continous block of memory -- if i want to grow it i would 
   //have to grow the top boundary higher -- can shrink it ig? 
@@ -91,7 +101,7 @@ void midalloc(void){
   char* data_allocate = "I hate my life";
   void* chunk = mmap(NULL,
                      chunk_size,
-                     permissions,flags,type);
+                     permissions,flags,type,);
 
   size_t data_of_user_combined; // why not int?
 
@@ -169,7 +179,14 @@ void midalloc(void){
   //pointer arithmetic is the next line -- yk this shit -- +N = N(size_t)
   // x7fff00x something relative to this -- i forgot lol T_T
   firstHeader->size = data_of_user_combined - sizeof(BlockHeader);
-
+  //
+  // this is not a good place to put pointer but i still wll;
+  pointer_data* prev = NULL;
+  pointer_data* next;
+  //can't bring them to loop - beginner stuff - would make it a local variable - deleted every iteration
+  //
+  //
+  //
   // header_pointer is fine but i need to make use of firstHeader or somtheing equivalent that allows me to manipulate the struct as well
   if(header_pointer->is_free == 1){
     // SHOULD I USE HEADER_SPACE ?? - LIKE I FEEL SOMETHING WILL GO WRONG
@@ -185,7 +202,10 @@ void midalloc(void){
     header_pointer -> size = strlen(data_allocate) * sizeof(int);
     data_allocate = header_space; // is this fine ? i am scared it will break something. 
     //
+    prev = (void*)&header_space;
+    //stuck how to do that every single header ? - so basically how would i make a linked list 
     //
+    
     header_space += (sizeof(char)*strlen(data_allocate) + header_pointer->size)/sizeof(BlockHeader);
     header_pointer = (BlockHeader*)&header_space; // wtf am i doing? --> kind of fine
     
