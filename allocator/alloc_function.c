@@ -3,6 +3,7 @@
 #include "alloc_function.h"
 #include <sys/mman.h>
 #include <stdbool.h>
+#include <string.h>
 
 //#define magic_number(sizeof(chunk_size)/sizeof(page_pool_size)) _Generic((x), \     
 //)(x)
@@ -17,11 +18,9 @@ typedef struct BlockHeader{
   //
   //struct BlockHeader* next; --> causing problems in calling it in for // pointer to the next free space  
   bool is_free;
-  void* next_pointer;
-  void* prev_pointer;
+  //void* next_pointer; - | they are  not part of the header bruh :P
+  //void* prev_pointer; - |
 }BlockHeader;
-
-#define SIZE_OF_HEADER 0
 
 void midalloc(void){
   // sbrk() -- expand the boundary by that much bytes -- bad idea - slow;
@@ -96,7 +95,7 @@ void midalloc(void){
 
   size_t data_of_user_combined; // why not int?
 
-  void* global_pointer = NULL;
+  void* global_header_pointer = NULL;
   //wtf is this (BlockHeader*)raw_pool
   //
   // 
@@ -146,12 +145,22 @@ void midalloc(void){
   //
   //wtf i have to change  this or the pointer arith will fail right?
   // this will be changed so another pointer to it is taken so manipulation becomes ez :)
-  
+  //
   //what should be the optimal type of pointer ?
-  BlockHeader* header_pointer = (BlockHeader*)firstHeader + 1; // currently pointing to second header not first ig :P
-  // -- > had to change this (void*)for some other pointer i guess?
-  void* start_of_actual_memory = (void*)((char*)header_pointer + SIZE_OF_HEADER);
-  BlockHeader** header_space = (BlockHeader**)header_pointer;
+  BlockHeader* header_pointer = (BlockHeader*)firstHeader; // -- damn its just pointing to the end of the header !!
+  // Wtf ? ---->>> any math or dereferencing done through header_space will corrupt the struct's fields (size, is_free).
+  global_header_pointer = &header_pointer;
+  //
+  // so basically this double pointer things means that there is a header_space is a pointer to a pointer of type blockheader
+  // while thhis head_pointer is its normal generic one.
+  // TWIST ig: at the end of all both of these pointers are pointing to the same address
+  // header_pointer assums that to be a struct while header_space assumes it a pointer to another pointer
+  // header_pointer + 1 jumps ahead by sizeof(BlockHeader) (e.g., 16 or 32 bytes).
+  // header_space + 1 jumps ahead by only sizeof(BlockHeader*) (typically 8 bytes on a 64-bit system).
+  //
+  //
+  //3remove blockheader pointer type -- can also use something called uintptr_t
+  char* header_space = (char*)(BlockHeader**)header_pointer;
   //
   // --- TASK: know the refrencing of the virutal addresses correctly. -- that is storage wise check;
   //suppossing the base address is 0x7fff000
@@ -161,15 +170,22 @@ void midalloc(void){
   // x7fff00x something relative to this -- i forgot lol T_T
   firstHeader->size = data_of_user_combined - sizeof(BlockHeader);
 
-
+  // header_pointer is fine but i need to make use of firstHeader or somtheing equivalent that allows me to manipulate the struct as well
   if(header_pointer->is_free == 1){
-    data_allocate = (char*)&start_of_actual_memory;
+    // SHOULD I USE HEADER_SPACE ?? - LIKE I FEEL SOMETHING WILL GO WRONG
+    // header_space is nothing but a thing assuming tha address containing another address of a pointer.
+    // header_pointer reads the entire size of struct as its a pointer to that struct
+    // but header_space reads only 8 bytes which is the size of that memory address
+    // for manipulating the memory address i will use the header_space
+    // Advances by sizeof(BlockHeader*) (8 bytes on 64-bit). If you try to jump to user space using this, you will corrupt your own struct fields.
+    // WTF -- WHY WILL IT GET CORRUPTED T_T if i use BlockHeader** ?? wtf is the problem ?
+    //
+    //header_space for layout and header_pointer for manipulating the actual payload space;
     header_pointer->is_free = 0;
-    header_pointer-> size = sizeof((char*)data_allocate);
+    header_pointer -> size = strlen(data_allocate) * sizeof(int);
+    data_allocate = header_space; // is this fine ? i am scared it will break something.
   }
   else{
-    // idk what the fuck i did somehow the error went away with this :)
-    header_pointer = start_of_actual_memory + header_pointer->size; 
   }
 
   // now i guess i can change things like firstHeader --> something like size or is_free.
@@ -183,5 +199,11 @@ void midalloc(void){
   if(clear_mapping){
     munmap(chunk,len);
   }
-  
+}
+
+
+
+
+void register_call(void){
+  // warming up the cache with prefetching wtf did i just hear???
 }
