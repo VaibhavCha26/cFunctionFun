@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include "alloc_function.c"
 
 int main(int argc, char* argv[]){
   char *admin_rights = mmap(NULL, 
@@ -21,6 +22,11 @@ int main(int argc, char* argv[]){
   //
   //
   munmap(admin_rights,20*sizeof(size_t)); // what if i didn't clear how much i took?
+  //
+  //
+  //
+  //
+  // mid_alloc Testing Time :(
   
   return 0;
 }

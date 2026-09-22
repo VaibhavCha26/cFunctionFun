@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-//#define magic_number(sizeof(chunk_size)/sizeof(page_pool_size)) _Generic((x), \     
+//#define magic_number(sizeof(chunk_size)/sizeof(page_pool_size)) _Generic((x), 
 //)(x)
 
 
@@ -18,8 +18,8 @@ typedef struct BlockHeader{
   //
   //struct BlockHeader* next; --> causing problems in calling it in for // pointer to the next free space  
   bool is_free;
-  //void* next_pointer; - | they are  not part of the header bruh :P
-  //void* prev_pointer; - |
+  //void* next_pointer; //- | they are  not part of the header bruh :P
+  void* prev_pointer; //- | anyway header is simply nothing but a assumption of where the line separating them is;
 }BlockHeader;
 
 typedef struct pointer_data{
@@ -29,10 +29,16 @@ typedef struct pointer_data{
   struct pointer_data* next;
 }pointer_data;
 
-
-
-void midalloc(NULL,chunk_size,
-                     permissions,flags,type){
+//
+//
+// idk why but it assumes that the void(){} will return int -> wtf? --> include "" called this function above this page !! kind of printed ig?
+//how do i pass that ? T_T --  change this and .h file one as well 
+//
+//
+void midalloc(void* chunk_size, int* clear_mapping, // same problem how to typecast it bruh?
+                     void* permissions,void* flags, void *type, void* file_des, void* offset){
+  //
+  //
   // sbrk() -- expand the boundary by that much bytes -- bad idea - slow;
   //one continous block of memory -- if i want to grow it i would 
   //have to grow the top boundary higher -- can shrink it ig? 
@@ -100,8 +106,8 @@ void midalloc(NULL,chunk_size,
   //
   char* data_allocate = "I hate my life";
   void* chunk = mmap(NULL,
-                     chunk_size,
-                     permissions,flags,type,);
+                     *(size_t*)chunk_size, // somehow worked lol :),
+                     *(int*)permissions,*(int*)flags,*(int*)file_des,*(int*)offset); // is changing this stuff better option ? idk :P
 
   size_t data_of_user_combined; // why not int?
 
@@ -181,13 +187,16 @@ void midalloc(NULL,chunk_size,
   firstHeader->size = data_of_user_combined - sizeof(BlockHeader);
   //
   // this is not a good place to put pointer but i still wll;
-  pointer_data* prev = NULL;
-  pointer_data* next;
+  //pointer_data* prev = NULL;
+  //pointer_data* next;
   //can't bring them to loop - beginner stuff - would make it a local variable - deleted every iteration
   //
   //
   //
   // header_pointer is fine but i need to make use of firstHeader or somtheing equivalent that allows me to manipulate the struct as well
+  //
+  //
+  // right now it simply goes through every one instance of it T-T. 
   if(header_pointer->is_free == 1){
     // SHOULD I USE HEADER_SPACE ?? - LIKE I FEEL SOMETHING WILL GO WRONG
     // header_space is nothing but a thing assuming tha address containing another address of a pointer.
@@ -200,17 +209,66 @@ void midalloc(NULL,chunk_size,
     //header_space for layout and header_pointer for manipulating the actual payload space;
     header_pointer->is_free = 0;
     header_pointer -> size = strlen(data_allocate) * sizeof(int);
+    //
+    //
+    // ****ROUND THE DATA UPTO MULTIPLE OF 8 !!
+    // cpu architecture -- will reads in chunks no matter what (bit wise (8 byte chunks)) --> MEMORY WORD :(
+    // cpu can grab memory only at clean multiples of 8 -- like 0x00 and 0x08 and stuff like that.
+    // so basically allocation can happen anywhere but the calling by cpu only happens on those spots !!!
+    //
+    // Physical Memory Chunks (Words): -- normal
+    //Word 0: [ 00 ][ 01 ][ 02 ][ 03 ][ 04 ][ 05 ][ 06 ][ 07 ]  (Address 0x00)
+    //Word 1: [ 08 ][ 09 ][ 10 ][ 11 ][ 12 ][ 13 ][ 14 ][ 15 ]  (Address 0x08)
+    //
+    //Your 4-byte integer goes over the boundary!
+    //Word 0: [    ][    ][    ][    ][    ][ X0 ][ X1 ][ X2 ]  
+    //Word 1: [ X3 ][    ][    ][    ][    ][    ][    ][    ]  
+    //
+    //now to read this single 4byte integer have to first fetch word 0 and then fetch word 1 
+    //and then "Mask out" the irrelevant bytes using "Bitwise Shifts" -- my cpu cycles !! T-T
+    //and bring all 4 of them into a register !! - my register T-T.
+    //doubles the cache pressure :P and memory bus traffic - wtf. on ARM this causes an unaligned access fault.
     data_allocate = header_space; // is this fine ? i am scared it will break something. 
     //
-    prev = (void*)&header_space;
+    // how tf i will get the next_pointer if i don't which is free without going through every single one?
+    header_pointer->prev_pointer = (void*)&header_space;
+    //well heaader is basically what i define it to be so i can just let it go inside the header and assume its outside of the header :)
+    //
+    pointer_data pointers;
+    pointers.prev = (void*)&header_pointer; // should store it but isn't it a local varible  -- how tf do i make it remember it and make it a permanent variable;
+    //
     //stuck how to do that every single header ? - so basically how would i make a linked list 
     //
     
     header_space += (sizeof(char)*strlen(data_allocate) + header_pointer->size)/sizeof(BlockHeader);
     header_pointer = (BlockHeader*)&header_space; // wtf am i doing? --> kind of fine
-    
+
+    //
+    //
+
+    // now how tf do i make the linked list; 
+    // and how do i make it go through and update the header pointers?
+    // supposedly the pointer i made suppose prev is simply there in the register which would be removed later but i would write the next address directly into the 
+    // permanent mmap memory page itself and now how the fuck do i do that ???
+    //
+    //  CODEVAULT: int i = 0  ---- Node* curr = &root;
+    //             i < n --------- curr!= NULL;
+    //             i ++ ------ curr = curr->next;
+    // 
+    // root.next = malloc() --- T-T 
+    // root.next->next; -- 2nd pointer 
+    // root.next->next->x; its value
+    // root.next->next->next; -- that's how it will go i guess
+    // but how to make it automated and won't the list be like 150 elements or more long T-T;
+    //
+    // iterating over a linked list is same as iterating over an array - almost same; -- yay i may be able to change
+    // for(Node* curr = &root ;curr!=NULL; curr = curr->next){
+    //      curr -> next = some_stuff; -- that should work nicely
+    // }
   }
+
   else{
+    
   }
 
   // now i guess i can change things like firstHeader --> something like size or is_free.
@@ -222,13 +280,14 @@ void midalloc(NULL,chunk_size,
   // if i can't take in what type of data it is - how would i make function out of it?
   // -->  void is the answer simply while giving call something like int* sdsd = function();   // Return the payload as a generic void*
   if(clear_mapping){
-    munmap(chunk,len);
+    munmap(chunk,strlen(data_allocate)*sizeof(char));
   }
+
+  
 }
-
-
-
-
+//
+//
+//weird stuff - leave for now;
 void register_call(void){
   // warming up the cache with prefetching wtf did i just hear???
 }
