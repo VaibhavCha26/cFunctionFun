@@ -110,7 +110,9 @@ void midalloc(void* chunk_size, int* clear_mapping, // same problem how to typec
                      *(int*)permissions,*(int*)flags,*(int*)file_des,*(int*)offset); // is changing this stuff better option ? idk :P
 
   size_t data_of_user_combined; // why not int?
-
+  //
+  //
+  //global_header_pointer simply keeps the note of where the first free block is (the anchor).
   void* global_header_pointer = NULL;
   //wtf is this (BlockHeader*)raw_pool
   //
@@ -198,6 +200,10 @@ void midalloc(void* chunk_size, int* clear_mapping, // same problem how to typec
   //
   // right now it simply goes through every one instance of it T-T. 
   if(header_pointer->is_free == 1){
+    // what if there is no space -- remove some stuff - but which one or is there some better way;
+
+
+
     // SHOULD I USE HEADER_SPACE ?? - LIKE I FEEL SOMETHING WILL GO WRONG
     // header_space is nothing but a thing assuming tha address containing another address of a pointer.
     // header_pointer reads the entire size of struct as its a pointer to that struct
@@ -265,6 +271,8 @@ void midalloc(void* chunk_size, int* clear_mapping, // same problem how to typec
     // for(Node* curr = &root ;curr!=NULL; curr = curr->next){
     //      curr -> next = some_stuff; -- that should work nicely
     // }
+    //
+    //
   }
 
   else{
