@@ -29,6 +29,13 @@ typedef struct pointer_data{
   struct pointer_data* next;
 }pointer_data;
 
+void linked_list(void){
+  char* link_pointer;
+  
+  linked_list(void);
+}
+
+
 //
 //
 // idk why but it assumes that the void(){} will return int -> wtf? --> include "" called this function above this page !! kind of printed ig?
@@ -210,7 +217,7 @@ void midalloc(void* chunk_size, int* clear_mapping, // same problem how to typec
     // but header_space reads only 8 bytes which is the size of that memory address
     // for manipulating the memory address i will use the header_space
     // Advances by sizeof(BlockHeader*) (8 bytes on 64-bit). If you try to jump to user space using this, you will corrupt your own struct fields.
-    // WTF -- WHY WILL IT GET CORRUPTED T_T if i use BlockHeader** ?? wtf is the problem ?
+      // WTF -- WHY WILL IT GET CORRUPTED T_T if i use BlockHeader** ?? wtf is the problem ?
     //
     //header_space for layout and header_pointer for manipulating the actual payload space;
     header_pointer->is_free = 0;
